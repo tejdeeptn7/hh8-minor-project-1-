@@ -49,3 +49,15 @@ if ($defender) {
     "Windows Defender Service Not Found" | Out-File $ReportPath -Append
 }
 "" | Out-File $ReportPath -Append
+
+# ---------------- FIREWALL STATUS (WMI) ----------------
+"--- Firewall Status ---" | Out-File $ReportPath -Append
+try {
+    $firewall = Get-WmiObject -Namespace root\StandardCimv2 -Class MSFT_NetFirewallProfile
+    foreach ($profile in $firewall) {
+        "Profile: $($profile.Name) | Enabled: $($profile.Enabled)" | Out-File $ReportPath -Append
+    }
+} catch {
+    "Unable to retrieve Firewall status via WMI" | Out-File $ReportPath -Append
+}
+"" | Out-File $ReportPath -Append
