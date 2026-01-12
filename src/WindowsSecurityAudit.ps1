@@ -61,3 +61,31 @@ try {
     "Unable to retrieve Firewall status via WMI" | Out-File $ReportPath -Append
 }
 "" | Out-File $ReportPath -Append
+# ---------------- UAC STATUS (REGISTRY VIA WMI) ----------------
+"--- User Account Control (UAC) ---" | Out-File $ReportPath -Append
+$regUAC = Get-WmiObject -Class StdRegProv -Namespace root\default
+
+if ($regUAC) {
+    $EnableLUA = 0
+    $regUAC.GetDWORDValue(
+        2147483650,
+        "SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+        "EnableLUA",
+        [ref]$EnableLUA
+    )
+
+    if ($EnableLUA -eq 1) {
+        "UAC Status: Enabled (Secure)" | Out-File $ReportPath -Append
+    } else {
+        "UAC Status: Disabled (HIGH RISK)" | Out-File $ReportPath -Append
+    }
+} else {
+    "Unable to read UAC registry values" | Out-File $ReportPath -Append
+}
+"" | Out-File $ReportPath -Append
+
+# ---------------- PASSWORD POLICY (SAFE METHOD) ----------------
+"--- Password Policy ---" | Out-File $ReportPath -Append
+net accounts | Out-File $ReportPath -Append
+"" | Out-File $ReportPath -Append
+
