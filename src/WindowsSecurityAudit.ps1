@@ -88,4 +88,26 @@ if ($regUAC) {
 "--- Password Policy ---" | Out-File $ReportPath -Append
 net accounts | Out-File $ReportPath -Append
 "" | Out-File $ReportPath -Append
+# ---------------- REMOTE DESKTOP STATUS (REGISTRY VIA WMI) ----------------
+"--- Remote Desktop ---" | Out-File $ReportPath -Append
+$regRDP = Get-WmiObject -Class StdRegProv -Namespace root\default
+
+if ($regRDP) {
+    $RDPValue = 1
+    $regRDP.GetDWORDValue(
+        2147483650,
+        "SYSTEM\CurrentControlSet\Control\Terminal Server",
+        "fDenyTSConnections",
+        [ref]$RDPValue
+    )
+
+    if ($RDPValue -eq 0) {
+        "Remote Desktop: Enabled (RISK)" | Out-File $ReportPath -Append
+    } else {
+        "Remote Desktop: Disabled (Secure)" | Out-File $ReportPath -Append
+    }
+} else {
+    "Unable to read Remote Desktop registry settings" | Out-File $ReportPath -Append
+}
+"" | Out-File $ReportPath -Append
 
