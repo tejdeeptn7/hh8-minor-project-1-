@@ -110,4 +110,19 @@ if ($regRDP) {
     "Unable to read Remote Desktop registry settings" | Out-File $ReportPath -Append
 }
 "" | Out-File $ReportPath -Append
+# ---------------- ADMIN USERS (WMI) ----------------
+"--- Administrator Accounts ---" | Out-File $ReportPath -Append
+$admins = Get-WmiObject Win32_GroupUser |
+    Where-Object { $_.GroupComponent -like "*Administrators*" }
+
+foreach ($admin in $admins) {
+    $admin.PartComponent | Out-File $ReportPath -Append
+}
+"" | Out-File $ReportPath -Append
+
+# ---------------- AUDIT COMPLETE ----------------
+"================ AUDIT COMPLETED =================" | Out-File $ReportPath -Append
+
+Write-Host "Audit completed successfully." -ForegroundColor Green
+Write-Host "Report saved at: $ReportPath"
 
