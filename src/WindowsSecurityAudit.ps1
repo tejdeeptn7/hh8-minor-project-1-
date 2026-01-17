@@ -63,13 +63,25 @@ try {
 "" | Out-File $ReportPath -Append
 # ---------------- UAC STATUS----------------
 "--- User Account Control (UAC) ---" | Out-File $ReportPath -Append
-$uac = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System").EnableLUA
-if ($uac -eq 1) {
-    "UAC Status: Enabled (Secure)" | Out-File $ReportPath -Append
-} else {
-    "UAC Status: Disabled (HIGH RISK)" | Out-File $ReportPath -Append
+
+try {
+    $uac = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name EnableLUA -ErrorAction Stop
+
+    if ($uac.EnableLUA -eq 1) {
+        "UAC Status: Enabled (Secure)" | Out-File $ReportPath -Append
+    } elseif ($uac.EnableLUA -eq 0) {
+        "UAC Status: Disabled (HIGH RISK)" | Out-File $ReportPath -Append
+    } else {
+        "UAC Status: Unknown value detected" | Out-File $ReportPath -Append
+    }
 }
+catch {
+    "UAC Status: Unable to read registry value (Insufficient permissions or key missing)" |
+        Out-File $ReportPath -Append
+}
+
 "" | Out-File $ReportPath -Append
+
 
 # ---------------- PASSWORD POLICY (SAFE METHOD) ----------------
 "--- Password Policy ---" | Out-File $ReportPath -Append
