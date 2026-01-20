@@ -1,4 +1,4 @@
-#ADMIN CHECK
+# ---------------- ADMIN CHECK ----------------
 $adminCheck = ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsIdentity]::GetCurrent()
 ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -7,23 +7,31 @@ if (-not $adminCheck) {
     Write-Host "Please run this script as Administrator." -ForegroundColor Red
     exit
 }
-#PATH SETUP
+
+# ---------------- PATH SETUP ----------------
 $BasePath   = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ReportPath = Join-Path $BasePath "..\reports\audit_report.txt"
+$ReportDir  = Join-Path $BasePath "..\reports"
+$ReportPath = Join-Path $ReportDir "audit_report.txt"
+
+# Create reports directory if it doesn't exist
+if (-not (Test-Path $ReportDir)) {
+    New-Item -ItemType Directory -Path $ReportDir | Out-Null
+}
+
 
 #START REPORT 
 "================ WINDOWS SECURITY AUDIT REPORT ================" | Out-File $ReportPath
 "Audit Date: $(Get-Date)" | Out-File $ReportPath -Append
 "" | Out-File $ReportPath -Append
 
-#OS INFORMATION (WMI)
+#OS INFORMATION 
 $os = Get-WmiObject Win32_OperatingSystem
 "Operating System: $($os.Caption)" | Out-File $ReportPath -Append
 "Version: $($os.Version)" | Out-File $ReportPath -Append
 "" | Out-File $ReportPath -Append
 
-#ANTIVIRUS STATUS (WMI) 
-"--- Antivirus Status (WMI) ---" | Out-File $ReportPath -Append
+#ANTIVIRUS STATUS  
+"--- Antivirus Status ---" | Out-File $ReportPath -Append
 try {
     $av = Get-WmiObject -Namespace root\SecurityCenter2 -Class AntiVirusProduct -ErrorAction Stop
     if ($av) {
@@ -38,7 +46,7 @@ try {
 }
 "" | Out-File $ReportPath -Append
 
-#WINDOWS DEFENDER SERVICE (WMI) 
+#WINDOWS DEFENDER SERVICE 
 "--- Windows Defender Service ---" | Out-File $ReportPath -Append
 $defender = Get-WmiObject Win32_Service | Where-Object { $_.Name -eq "WinDefend" }
 
@@ -50,7 +58,7 @@ if ($defender) {
 }
 "" | Out-File $ReportPath -Append
 
-# ---------------- FIREWALL STATUS (WMI) ----------------
+# ---------------- FIREWALL STATUS ----------------
 "--- Firewall Status ---" | Out-File $ReportPath -Append
 try {
     $firewall = Get-WmiObject -Namespace root\StandardCimv2 -Class MSFT_NetFirewallProfile
@@ -58,7 +66,7 @@ try {
         "Profile: $($profile.Name) | Enabled: $($profile.Enabled)" | Out-File $ReportPath -Append
     }
 } catch {
-    "Unable to retrieve Firewall status via WMI" | Out-File $ReportPath -Append
+    "Unable to retrieve Firewall status" | Out-File $ReportPath -Append
 }
 "" | Out-File $ReportPath -Append
 # ---------------- UAC STATUS----------------
@@ -87,29 +95,29 @@ catch {
 "--- Password Policy ---" | Out-File $ReportPath -Append
 net accounts | Out-File $ReportPath -Append
 "" | Out-File $ReportPath -Append
-# ---------------- REMOTE DESKTOP STATUS (REGISTRY VIA WMI) ----------------
+# ---------------- REMOTE DESKTOP STATUS (LOCAL REGISTRY - SAFE) ----------------
 "--- Remote Desktop ---" | Out-File $ReportPath -Append
-$regRDP = Get-WmiObject -Class StdRegProv -Namespace root\default
 
-if ($regRDP) {
-    $RDPValue = 1
-    $regRDP.GetDWORDValue(
-        2147483650,
-        "SYSTEM\CurrentControlSet\Control\Terminal Server",
-        "fDenyTSConnections",
-        [ref]$RDPValue
-    )
+try {
+    $rdp = Get-ItemProperty `
+        -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" `
+        -Name "fDenyTSConnections" `
+        -ErrorAction Stop
 
-    if ($RDPValue -eq 0) {
+    if ($rdp.fDenyTSConnections -eq 0) {
         "Remote Desktop: Enabled (RISK)" | Out-File $ReportPath -Append
     } else {
         "Remote Desktop: Disabled (Secure)" | Out-File $ReportPath -Append
     }
-} else {
-    "Unable to read Remote Desktop registry settings" | Out-File $ReportPath -Append
 }
+catch {
+    "Remote Desktop: Unable to read registry value" | Out-File $ReportPath -Append
+}
+
 "" | Out-File $ReportPath -Append
-# ---------------- ADMIN USERS (WMI) ----------------
+
+
+# ---------------- ADMIN USERS ----------------
 "--- Administrator Accounts ---" | Out-File $ReportPath -Append
 $admins = Get-WmiObject Win32_GroupUser |
     Where-Object { $_.GroupComponent -like "*Administrators*" }
