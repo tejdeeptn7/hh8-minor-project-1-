@@ -100,19 +100,11 @@ Clone or download the repository.
 
 
 
-Navigate to the src folder:
 
 
-
-cd ProjectOne/src
-
+Run the "run_audit.bat" script as Administrator:
 
 
-Run the script as Administrator:
-
-
-
-.\\WindowsSecurityAudit.ps1
 
 
 
@@ -120,11 +112,11 @@ After successful execution, the audit report will be generated at:
 
 
 
-reports/audit\_report.txt
+reports/audit_report.txt
 
 
 
-File Name: audit\_report.txt
+File Name: audit_report.txt
 
 
 
